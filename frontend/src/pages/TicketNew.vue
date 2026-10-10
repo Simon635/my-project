@@ -1,47 +1,59 @@
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { items } from '../ticketsStore'
+import { addItem } from '../ticketsStore'
 
 const router = useRouter()
 
 const form = reactive({
   title: '',
-  classroomId: '',
+  siteId: 0,
   description: '',
 })
 
-function createRequest() {
+const errors = reactive({
+  title: '',
+  siteId: '',
+  description: '',
+})
+
+function onCreate() {
+  errors.title = ''
+  errors.siteId = ''
+  errors.description = ''
+
   const title = form.title.trim()
   const description = form.description.trim()
-  const classroomId = Number(form.classroomId)
+  const siteId = form.siteId
+
+  let isValid = true
 
   if (title.length < 5 || title.length > 80) {
-    alert('Название должно содержать от 5 до 80 символов.')
-    return
+    errors.title = 'Тема: от 5 до 80 символов.'
+    isValid = false
+  }
+
+  if (!Number.isInteger(siteId) || siteId <= 0) {
+    errors.siteId = 'Укажите целое число больше нуля.'
+    isValid = false
   }
 
   if (description.length < 10 || description.length > 500) {
-    alert('Описание должно содержать от 10 до 500 символов.')
-    return
+    errors.description = 'Описание: от 10 до 500 символов.'
+    isValid = false
   }
 
-  if (!Number.isInteger(classroomId) || classroomId < 1) {
-    alert('Введите корректный номер аудитории.')
-    return
-  }
+  if (!isValid) return
 
-  const nextId = items.value.length
-    ? Math.max(...items.value.map(item => item.id)) + 1
-    : 1
-
-  items.value.unshift({
-    id: nextId,
+  addItem({
     title,
-    classroomId,
+    siteId,
     description,
-    status: 'New',
   })
+
+  form.title = ''
+  form.siteId = 0
+  form.description = ''
 
   router.push('/')
 }
@@ -58,7 +70,7 @@ function createRequest() {
     </section>
 
     <section class="form-section">
-      <form class="request-form" @submit.prevent="createRequest">
+      <form class="request-form" @submit.prevent="onCreate">
         <div>
           <label for="title">Название заявки</label>
           <input
@@ -68,22 +80,28 @@ function createRequest() {
             minlength="5"
             maxlength="80"
             placeholder="Например, не работает проектор"
+            autofocus
             required
           />
           <p class="form-hint">От 5 до 80 символов.</p>
+          <p v-if="errors.title" class="field-error" role="alert">
+            {{ errors.title }}
+          </p>
         </div>
 
         <div>
-          <label for="classroomId">Номер аудитории</label>
+          <label for="siteId">ID площадки</label>
           <input
-            id="classroomId"
-            v-model="form.classroomId"
+            id="siteId"
+            v-model.number="form.siteId"
             type="number"
             min="1"
             step="1"
-            placeholder="Например, 204"
             required
           />
+          <p v-if="errors.siteId" class="field-error" role="alert">
+            {{ errors.siteId }}
+          </p>
         </div>
 
         <div>
@@ -94,10 +112,13 @@ function createRequest() {
             minlength="10"
             maxlength="500"
             rows="5"
-            placeholder="Опишите, что произошло и какое оборудование неисправно"
+            placeholder="Опишите неисправность оборудования"
             required
           />
           <p class="form-hint">От 10 до 500 символов.</p>
+          <p v-if="errors.description" class="field-error" role="alert">
+            {{ errors.description }}
+          </p>
         </div>
 
         <div class="form-actions">

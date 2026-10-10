@@ -39,8 +39,8 @@ const statusLabels = {
           <p>{{ item.description }}</p>
 
           <div class="request-meta">
-            <span>Аудитория: {{ item.classroomId }}</span>
-            <span>№ {{ item.id }}</span>
+						<span>Площадка: {{ item.siteId }}</span>
+						<span>№ {{ item.number }}</span>
           </div>
         </div>
       </div>

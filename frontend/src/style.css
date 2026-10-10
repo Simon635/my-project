@@ -636,3 +636,10 @@ a:hover {
   font-weight: 800;
   box-shadow: 0 4px 10px rgba(55, 83, 190, 0.25);
 }
+
+.field-error {
+  margin: 6px 0 0;
+  color: #c62828;
+  font-size: 13px;
+  font-weight: 600;
+}
