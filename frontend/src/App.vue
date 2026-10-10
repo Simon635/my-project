@@ -1,0 +1,875 @@
+```vue
+<script setup>
+import { ref } from 'vue'
+
+const requests = ref([
+  {
+    id: 1,
+    title: 'Не работает проектор',
+    classroomId: 204,
+    description: 'Проектор включается, но не выводит изображение.',
+    status: 'New',
+  },
+  {
+    id: 2,
+    title: 'Проблема со звуком',
+    classroomId: 108,
+    description: 'Во время занятия отсутствует звук в колонках.',
+    status: 'InProgress',
+  },
+  {
+    id: 3,
+    title: 'Неисправен интерактивный экран',
+    classroomId: 310,
+    description: 'Экран не реагирует на прикосновения.',
+    status: 'Closed',
+  },
+])
+
+const currentScreen = ref('list')
+
+const form = ref({
+  title: '',
+  classroomId: '',
+  description: '',
+})
+
+const loginForm = ref({
+  email: '',
+  password: '',
+})
+
+const loginMessage = ref('')
+
+const statusLabels = {
+  New: 'Новая',
+  InProgress: 'В работе',
+  Closed: 'Закрыта',
+  Cancelled: 'Отменена',
+}
+
+function showScreen(screen) {
+  currentScreen.value = screen
+  loginMessage.value = ''
+}
+
+function createRequest() {
+  const title = form.value.title.trim()
+  const description = form.value.description.trim()
+  const classroomId = Number(form.value.classroomId)
+
+  if (
+    title.length < 5 ||
+    title.length > 80 ||
+    description.length < 10 ||
+    description.length > 500 ||
+    !Number.isInteger(classroomId) ||
+    classroomId < 1
+  ) {
+    return
+  }
+
+  const newRequest = {
+    id: requests.value.length
+      ? Math.max(...requests.value.map((item) => item.id)) + 1
+      : 1,
+    title,
+    classroomId,
+    description,
+    status: 'New',
+  }
+
+  requests.value.unshift(newRequest)
+
+  form.value = {
+    title: '',
+    classroomId: '',
+    description: '',
+  }
+
+  currentScreen.value = 'list'
+}
+
+function login() {
+  loginMessage.value =
+    'Форма проверена. Авторизация будет подключена после появления backend.'
+}
+</script>
+
+<template>
+  <div class="app">
+    <header class="header">
+      <div class="header-content">
+        <button class="brand" @click="showScreen('list')">
+          <div class="brand-icon">М</div>
+          <div class="brand-text">
+            <h1>МедиаРемонт</h1>
+            <p>Система учёта заявок</p>
+          </div>
+        </button>
+
+        <nav class="navigation">
+          <button
+            :class="{ active: currentScreen === 'list' }"
+            @click="showScreen('list')"
+          >
+            Заявки
+          </button>
+
+          <button
+            :class="{ active: currentScreen === 'create' }"
+            @click="showScreen('create')"
+          >
+            Создать заявку
+          </button>
+
+          <button
+            :class="{ active: currentScreen === 'login' }"
+            @click="showScreen('login')"
+          >
+            Войти
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="main">
+      <!-- Экран списка заявок -->
+      <section v-if="currentScreen === 'list'">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">УПРАВЛЕНИЕ ОБРАЩЕНИЯМИ</p>
+            <h2>Заявки на ремонт</h2>
+            <p class="subtitle">
+              Просматривайте и отслеживайте состояние оборудования.
+            </p>
+          </div>
+
+          <button class="primary-button" @click="showScreen('create')">
+            + Новая заявка
+          </button>
+        </div>
+
+        <div class="summary">
+          <div class="summary-card">
+            <span>Всего заявок</span>
+            <strong>{{ requests.length }}</strong>
+          </div>
+
+          <div class="summary-card">
+            <span>Новые</span>
+            <strong>
+              {{ requests.filter((item) => item.status === 'New').length }}
+            </strong>
+          </div>
+
+          <div class="summary-card">
+            <span>В работе</span>
+            <strong>
+              {{ requests.filter((item) => item.status === 'InProgress').length }}
+            </strong>
+          </div>
+
+          <div class="summary-card">
+            <span>Завершены</span>
+            <strong>
+              {{ requests.filter((item) => item.status === 'Closed').length }}
+            </strong>
+          </div>
+        </div>
+
+        <div class="list-heading">
+          <h3>Последние обращения</h3>
+          <span>{{ requests.length }} записей</span>
+        </div>
+
+        <div v-if="requests.length" class="request-list">
+          <article
+            v-for="request in requests"
+            :key="request.id"
+            class="request-card"
+          >
+            <div class="request-main">
+              <div class="request-icon">⚙</div>
+
+              <div class="request-info">
+                <div class="request-title-row">
+                  <h4>{{ request.title }}</h4>
+
+                  <span class="status" :class="request.status">
+                    {{ statusLabels[request.status] }}
+                  </span>
+                </div>
+
+                <p>{{ request.description }}</p>
+
+                <div class="request-meta">
+                  <span>Заявка №{{ request.id }}</span>
+                  <span>Аудитория {{ request.classroomId }}</span>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div v-else class="empty-state">
+          <div class="empty-icon">📋</div>
+          <h3>Заявок пока нет</h3>
+          <p>Создайте первую заявку на ремонт оборудования.</p>
+
+          <button class="primary-button" @click="showScreen('create')">
+            Создать заявку
+          </button>
+        </div>
+      </section>
+
+      <!-- Экран создания заявки -->
+      <section v-else-if="currentScreen === 'create'" class="form-section">
+        <p class="eyebrow">НОВОЕ ОБРАЩЕНИЕ</p>
+        <h2>Создание заявки</h2>
+
+        <p class="form-description">
+          Заполните информацию о неисправности мультимедийного оборудования.
+        </p>
+
+        <form class="request-form" @submit.prevent="createRequest">
+          <label for="title">Название заявки</label>
+          <input
+            id="title"
+            v-model.trim="form.title"
+            type="text"
+            minlength="5"
+            maxlength="80"
+            placeholder="Например, не работает проектор"
+            required
+          />
+
+          <label for="classroomId">Номер аудитории</label>
+          <input
+            id="classroomId"
+            v-model.number="form.classroomId"
+            type="number"
+            min="1"
+            step="1"
+            placeholder="Например, 204"
+            required
+          />
+
+          <label for="description">Описание проблемы</label>
+          <textarea
+            id="description"
+            v-model.trim="form.description"
+            minlength="10"
+            maxlength="500"
+            rows="5"
+            placeholder="Опишите неисправность и обстоятельства её обнаружения"
+            required
+          ></textarea>
+
+          <p class="form-hint">
+            Название: 5–80 символов. Описание: 10–500 символов.
+          </p>
+
+          <div class="form-actions">
+            <button
+              type="button"
+              class="secondary-button"
+              @click="showScreen('list')"
+            >
+              Отмена
+            </button>
+
+            <button type="submit" class="primary-button">
+              Создать заявку
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Экран входа -->
+      <section v-else class="login-section">
+        <div class="login-icon">М</div>
+        <p class="eyebrow">ЛИЧНЫЙ КАБИНЕТ</p>
+        <h2>Вход в систему</h2>
+
+        <p class="form-description">
+          Войдите в систему для работы с заявками.
+        </p>
+
+        <form class="request-form" @submit.prevent="login">
+          <label for="email">Электронная почта</label>
+          <input
+            id="email"
+            v-model.trim="loginForm.email"
+            type="email"
+            autocomplete="email"
+            placeholder="name@example.com"
+            required
+          />
+
+          <label for="password">Пароль</label>
+          <input
+            id="password"
+            v-model="loginForm.password"
+            type="password"
+            autocomplete="current-password"
+            minlength="6"
+            placeholder="Введите пароль"
+            required
+          />
+
+          <button type="submit" class="primary-button login-button">
+            Войти
+          </button>
+
+          <p v-if="loginMessage" class="login-message" role="status">
+            {{ loginMessage }}
+          </p>
+        </form>
+
+        <button class="back-link" @click="showScreen('list')">
+          ← Вернуться к заявкам
+        </button>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span class="footer-brand">МедиаРемонт</span>
+      <span>Учёт заявок на ремонт мультимедийного оборудования</span>
+    </footer>
+  </div>
+</template>
+
+<style>
+:root {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #20283a;
+  background: #f5f7fb;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.header {
+  background: #fff;
+  border-bottom: 1px solid #e7eaf1;
+}
+
+.header-content {
+  max-width: 1180px;
+  min-height: 86px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  text-align: left;
+  background: transparent;
+}
+
+.brand-icon,
+.login-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  color: #fff;
+  background: #4f46e5;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.brand h1 {
+  margin: 0;
+  color: #20283a;
+  font-size: 19px;
+  letter-spacing: -0.5px;
+}
+
+.brand p {
+  margin: 4px 0 0;
+  color: #8790a3;
+  font-size: 12px;
+}
+
+.navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.navigation button {
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 9px;
+  color: #687187;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.navigation button:hover,
+.navigation button.active {
+  color: #4f46e5;
+  background: #efefff;
+}
+
+.main {
+  max-width: 1180px;
+  min-height: calc(100vh - 160px);
+  margin: 0 auto;
+  padding: 48px 24px 64px;
+}
+
+.page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: #6560d9;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+h2 {
+  margin: 0;
+  font-size: clamp(26px, 4vw, 34px);
+  letter-spacing: -1px;
+}
+
+.subtitle {
+  margin: 10px 0 0;
+  color: #858da0;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.primary-button {
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 10px;
+  color: #fff;
+  background: #5146e5;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.primary-button:hover {
+  background: #4035cc;
+  transform: translateY(-1px);
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 36px;
+}
+
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+  border: 1px solid #e9ecf3;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.summary-card span {
+  color: #7f889b;
+  font-size: 13px;
+}
+
+.summary-card strong {
+  font-size: 30px;
+  letter-spacing: -1px;
+}
+
+.list-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.list-heading h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.list-heading span {
+  color: #858da0;
+  font-size: 13px;
+}
+
+.request-list {
+  display: grid;
+  gap: 12px;
+}
+
+.request-card {
+  padding: 22px;
+  border: 1px solid #e9ecf3;
+  border-radius: 14px;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.request-card:hover {
+  border-color: #d4d2ff;
+  box-shadow: 0 8px 24px rgb(31 41 55 / 5%);
+}
+
+.request-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.request-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  height: 44px;
+  border-radius: 12px;
+  color: #5b55dc;
+  background: #f0efff;
+  font-size: 22px;
+}
+
+.request-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.request-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.request-title-row h4 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.request-info > p {
+  margin: 10px 0 16px;
+  color: #778095;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.status {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status.New {
+  color: #a16207;
+  background: #fef3c7;
+}
+
+.status.InProgress {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.status.Closed {
+  color: #047857;
+  background: #d1fae5;
+}
+
+.status.Cancelled {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.request-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  color: #939bad;
+  font-size: 12px;
+}
+
+.empty-state {
+  padding: 52px 24px;
+  border: 1px solid #e9ecf3;
+  border-radius: 16px;
+  background: #fff;
+  text-align: center;
+}
+
+.empty-icon {
+  margin-bottom: 12px;
+  font-size: 32px;
+}
+
+.empty-state h3 {
+  margin: 0;
+}
+
+.empty-state p {
+  margin: 14px 0 24px;
+  color: #7f889b;
+}
+
+.form-section,
+.login-section {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 36px;
+  border: 1px solid #e9ecf3;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.form-description {
+  margin: 12px 0 28px;
+  color: #7f889b;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.request-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.request-form label {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.request-form input,
+.request-form textarea {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid #dfe3ed;
+  border-radius: 9px;
+  color: #20283a;
+  background: #fff;
+}
+
+.request-form input::placeholder,
+.request-form textarea::placeholder {
+  color: #a2a9b8;
+}
+
+.request-form input:focus,
+.request-form textarea:focus {
+  outline: 2px solid #d4d2ff;
+  border-color: #6258e8;
+}
+
+.request-form textarea {
+  resize: vertical;
+}
+
+.form-hint {
+  margin: 4px 0 12px;
+  color: #858da0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.secondary-button {
+  padding: 11px 16px;
+  border: 1px solid #dfe3ed;
+  border-radius: 9px;
+  color: #454d61;
+  background: #fff;
+  font-weight: 600;
+}
+
+.secondary-button:hover {
+  background: #f5f6fa;
+}
+
+.login-section {
+  max-width: 480px;
+  text-align: center;
+}
+
+.login-icon {
+  margin: 0 auto 22px;
+}
+
+.login-section .form-description {
+  margin-bottom: 24px;
+}
+
+.login-section .request-form {
+  text-align: left;
+}
+
+.login-button {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.login-message {
+  margin: 10px 0 0;
+  padding: 12px;
+  border-radius: 9px;
+  color: #1d4ed8;
+  background: #eff6ff;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.back-link {
+  margin-top: 24px;
+  padding: 8px;
+  border: 0;
+  color: #6258d9;
+  background: transparent;
+  font-weight: 600;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px max(24px, calc((100% - 1132px) / 2));
+  border-top: 1px solid #e7eaf1;
+  color: #9299aa;
+  background: #fff;
+  font-size: 12px;
+}
+
+.footer-brand {
+  color: #606980;
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .header-content {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .navigation {
+    width: 100%;
+  }
+
+  .navigation button {
+    padding: 9px 10px;
+  }
+
+  .main {
+    padding: 32px 16px 48px;
+  }
+
+  .page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .summary-card {
+    padding: 16px;
+  }
+
+  .request-card {
+    padding: 16px;
+  }
+
+  .request-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .form-section,
+  .login-section {
+    padding: 24px 18px;
+  }
+
+  .footer {
+    flex-direction: column;
+    padding: 22px 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  .summary-card strong {
+    font-size: 25px;
+  }
+
+  .navigation button {
+    font-size: 12px;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
+}
+</style>
+```
