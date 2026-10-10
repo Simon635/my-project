@@ -1,13 +1,14 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { addItem } from '../ticketsStore'
+import { createTicket, getTickets } from '../api/tickets'
+import { items } from '../ticketsStore'
 
 const router = useRouter()
 
 const form = reactive({
   title: '',
-  siteId: 0,
+  siteId: '',
   description: '',
 })
 
@@ -17,45 +18,75 @@ const errors = reactive({
   description: '',
 })
 
-function onCreate() {
+const isSubmitting = ref(false)
+const submitError = ref('')
+
+function validateForm() {
   errors.title = ''
   errors.siteId = ''
   errors.description = ''
 
   const title = form.title.trim()
   const description = form.description.trim()
-  const siteId = form.siteId
-
-  let isValid = true
+  const siteId = Number(form.siteId)
 
   if (title.length < 5 || title.length > 80) {
     errors.title = 'Тема: от 5 до 80 символов.'
-    isValid = false
   }
 
   if (!Number.isInteger(siteId) || siteId <= 0) {
     errors.siteId = 'Укажите целое число больше нуля.'
-    isValid = false
   }
 
   if (description.length < 10 || description.length > 500) {
     errors.description = 'Описание: от 10 до 500 символов.'
-    isValid = false
   }
 
-  if (!isValid) return
-
-  addItem({
+  return {
+    valid: !errors.title && !errors.siteId && !errors.description,
     title,
     siteId,
     description,
-  })
+  }
+}
 
-  form.title = ''
-  form.siteId = 0
-  form.description = ''
+async function onCreate() {
+  if (isSubmitting.value) return
 
-  router.push('/')
+  submitError.value = ''
+
+  const result = validateForm()
+  if (!result.valid) return
+
+  isSubmitting.value = true
+
+  try {
+    const createdItem = await createTicket({
+      title: result.title,
+      siteId: result.siteId,
+      description: result.description,
+    })
+
+    // Обновляем общий список данными из API.
+    // Если повторная загрузка не удалась, всё равно сохраняем
+    // полученную от API созданную запись в текущем интерфейсе.
+    try {
+      const data = await getTickets()
+      items.value = data
+    } catch {
+      items.value.unshift(createdItem)
+    }
+
+    form.title = ''
+    form.siteId = ''
+    form.description = ''
+
+    await router.push('/')
+  } catch (error) {
+    submitError.value = error.message || 'Не удалось создать заявку'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
@@ -70,18 +101,21 @@ function onCreate() {
     </section>
 
     <section class="form-section">
-      <form class="request-form" @submit.prevent="onCreate">
+      <form
+        class="request-form"
+        novalidate
+        @submit.prevent="onCreate"
+      >
         <div>
           <label for="title">Название заявки</label>
           <input
             id="title"
             v-model="form.title"
             type="text"
-            minlength="5"
             maxlength="80"
             placeholder="Например, не работает проектор"
-            autofocus
             required
+            :aria-invalid="Boolean(errors.title)"
           />
           <p class="form-hint">От 5 до 80 символов.</p>
           <p v-if="errors.title" class="field-error" role="alert">
@@ -98,6 +132,7 @@ function onCreate() {
             min="1"
             step="1"
             required
+            :aria-invalid="Boolean(errors.siteId)"
           />
           <p v-if="errors.siteId" class="field-error" role="alert">
             {{ errors.siteId }}
@@ -114,6 +149,7 @@ function onCreate() {
             rows="5"
             placeholder="Опишите неисправность оборудования"
             required
+            :aria-invalid="Boolean(errors.description)"
           />
           <p class="form-hint">От 10 до 500 символов.</p>
           <p v-if="errors.description" class="field-error" role="alert">
@@ -121,13 +157,21 @@ function onCreate() {
           </p>
         </div>
 
+        <p v-if="submitError" class="field-error" role="alert">
+          {{ submitError }}
+        </p>
+
         <div class="form-actions">
           <RouterLink to="/" class="secondary-button">
             Отмена
           </RouterLink>
 
-          <button type="submit" class="primary-button">
-            Создать заявку
+          <button
+            type="submit"
+            class="primary-button"
+            :disabled="isSubmitting"
+          >
+            {{ isSubmitting ? 'Создаём…' : 'Создать заявку' }}
           </button>
         </div>
       </form>
