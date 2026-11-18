@@ -9,6 +9,7 @@ builder.Services.AddSwaggerGen();
 
 // Dependency Injection
 builder.Services.AddScoped<IAppInfoService, AppInfoService>();
+builder.Services.AddSingleton<IRepairRequestService, RepairRequestService>();
 
 var app = builder.Build();
 

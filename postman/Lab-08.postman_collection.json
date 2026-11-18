@@ -1,0 +1,204 @@
+
+{
+  "info": {
+    "name": "Multimedia Repair API — Lab 08",
+    "description": "Проверка REST API заявок на ремонт мультимедийного оборудования",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "requestId",
+      "value": "1"
+    },
+    {
+      "key": "conflictRequestId",
+      "value": "2"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 — Создать заявку (201)",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\":\"Не работает проектор\",\"classroomId\":205,\"description\":\"Проектор не включается после подачи питания\"}"
+        },
+        "url": "{{baseUrl}}/api/repair-requests"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Статус 201 Created', function () { pm.response.to.have.status(201); });",
+            "if (pm.response.code === 201) { pm.collectionVariables.set('requestId', pm.response.json().id); }"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "02 — Получить список заявок (200)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/repair-requests"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Статус 200 OK', function () { pm.response.to.have.status(200); });",
+            "pm.test('Ответ является массивом', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "03 — Получить заявку по ID (200)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/repair-requests/{{requestId}}"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Статус 200 OK', function () { pm.response.to.have.status(200); });"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "04 — Назначить исполнителя (200)",
+      "request": {
+        "method": "PATCH",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"assigneeUserId\":7}"
+        },
+        "url": "{{baseUrl}}/api/repair-requests/{{requestId}}/assignee"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Статус 200 OK', function () { pm.response.to.have.status(200); });",
+            "pm.test('Исполнитель назначен', function () { pm.expect(pm.response.json().assigneeUserId).to.eql(7); });"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "05 — Изменить статус (200)",
+      "request": {
+        "method": "PATCH",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"status\":\"InProgress\"}"
+        },
+        "url": "{{baseUrl}}/api/repair-requests/{{requestId}}/status"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Статус 200 OK', function () { pm.response.to.have.status(200); });",
+            "pm.test('Статус заявки InProgress', function () { pm.expect(pm.response.json().status).to.eql('InProgress'); });"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "06 — Некорректные данные (400)",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\":\"Тест\",\"classroomId\":205,\"description\":\"Плохо\"}"
+        },
+        "url": "{{baseUrl}}/api/repair-requests"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Статус 400 Bad Request', function () { pm.response.to.have.status(400); });"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "07 — Несуществующая заявка (404)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/repair-requests/999999"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Статус 404 Not Found', function () { pm.response.to.have.status(404); });"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "08 — Создать заявку без исполнителя (201)",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\":\"Не работает микрофон\",\"classroomId\":210,\"description\":\"Микрофон не передает звук на акустическую систему\"}"
+        },
+        "url": "{{baseUrl}}/api/repair-requests"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Статус 201 Created', function () { pm.response.to.have.status(201); });",
+            "if (pm.response.code === 201) { pm.collectionVariables.set('conflictRequestId', pm.response.json().id); }"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "09 — Начать работу без исполнителя (409)",
+      "request": {
+        "method": "PATCH",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"status\":\"InProgress\"}"
+        },
+        "url": "{{baseUrl}}/api/repair-requests/{{conflictRequestId}}/status"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Статус 409 Conflict', function () { pm.response.to.have.status(409); });"
+          ]
+        }
+      }]
+    }
+  ]
+}
+
