@@ -1,4 +1,3 @@
-
 using backend.Dtos;
 using backend.Models;
 using backend.Services;
@@ -8,26 +7,17 @@ namespace backend.Controllers;
 
 [ApiController]
 [Route("api/repair-requests")]
-public class RepairRequestsController : ControllerBase
+public class RepairRequestsController(
+    IRepairRequestService service,
+    ILogger<RepairRequestsController> logger) : ControllerBase
 {
-    private readonly IRepairRequestService _service;
-    private readonly ILogger<RepairRequestsController> _logger;
-
-    public RepairRequestsController(
-        IRepairRequestService service,
-        ILogger<RepairRequestsController> logger)
-    {
-        _service = service;
-        _logger = logger;
-    }
-
     [HttpPost]
-    public ActionResult<RepairRequestResponse> Create(
+    public async Task<ActionResult<RepairRequestResponse>> Create(
         CreateRepairRequestRequest request)
     {
         try
         {
-            var repairRequest = _service.Create(request);
+            var repairRequest = await service.CreateAsync(request);
             var response = MapToResponse(repairRequest);
 
             return CreatedAtAction(
@@ -37,7 +27,7 @@ public class RepairRequestsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(
+            logger.LogError(
                 "CreateRepairRequest failed; classroomId={ClassroomId}; error={ErrorType}",
                 request.ClassroomId,
                 ex.GetType().Name);
@@ -52,54 +42,43 @@ public class RepairRequestsController : ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<List<RepairRequestResponse>> GetAll()
+    public async Task<ActionResult<List<RepairRequestResponse>>> GetAll()
     {
-        var requests = _service.GetAll()
-            .Select(MapToResponse)
-            .ToList();
-
-        return Ok(requests);
+        var requests = await service.GetAllAsync();
+        return Ok(requests.Select(MapToResponse).ToList());
     }
 
     [HttpGet("{id:int}")]
-    public ActionResult<RepairRequestResponse> GetById(int id)
+    public async Task<ActionResult<RepairRequestResponse>> GetById(int id)
     {
-        var repairRequest = _service.GetById(id);
+        var repairRequest = await service.GetByIdAsync(id);
 
         if (repairRequest is null)
-        {
             return NotFound();
-        }
 
         return Ok(MapToResponse(repairRequest));
     }
 
     [HttpPatch("{id:int}/assignee")]
-    public ActionResult<RepairRequestResponse> Assign(
-        int id,
-        AssignRepairRequestRequest request)
+    public async Task<ActionResult<RepairRequestResponse>> Assign(
+        int id, AssignRepairRequestRequest request)
     {
-        var repairRequest = _service.Assign(id, request.AssigneeUserId);
+        var repairRequest = await service.AssignAsync(id, request.AssigneeUserId);
 
         if (repairRequest is null)
-        {
             return NotFound();
-        }
 
         return Ok(MapToResponse(repairRequest));
     }
 
     [HttpPatch("{id:int}/status")]
-    public ActionResult<RepairRequestResponse> UpdateStatus(
-        int id,
-        UpdateRepairRequestStatusRequest request)
+    public async Task<ActionResult<RepairRequestResponse>> UpdateStatus(
+        int id, UpdateRepairRequestStatusRequest request)
     {
-        var result = _service.UpdateStatus(id, request.Status);
+        var result = await service.UpdateStatusAsync(id, request.Status);
 
         if (result.Request is null)
-        {
             return NotFound();
-        }
 
         if (result.Error is not null)
         {
@@ -114,8 +93,7 @@ public class RepairRequestsController : ControllerBase
         return Ok(MapToResponse(result.Request));
     }
 
-    private static RepairRequestResponse MapToResponse(
-        RepairRequest request)
+    private static RepairRequestResponse MapToResponse(RepairRequest request)
     {
         return new RepairRequestResponse
         {
@@ -130,4 +108,3 @@ public class RepairRequestsController : ControllerBase
         };
     }
 }
-

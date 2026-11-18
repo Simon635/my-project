@@ -5,9 +5,9 @@ namespace backend.Services;
 
 public interface IRepairRequestService
 {
-    RepairRequest Create(CreateRepairRequestRequest request);
-    List<RepairRequest> GetAll();
-    RepairRequest? GetById(int id);
-    RepairRequest? Assign(int id, int assigneeUserId);
-    (RepairRequest? Request, string? Error) UpdateStatus(int id, string status);
+    Task<RepairRequest> CreateAsync(CreateRepairRequestRequest request);
+    Task<List<RepairRequest>> GetAllAsync();
+    Task<RepairRequest?> GetByIdAsync(int id);
+    Task<RepairRequest?> AssignAsync(int id, int assigneeUserId);
+    Task<(RepairRequest? Request, string? Error)> UpdateStatusAsync(int id, string status);
 }

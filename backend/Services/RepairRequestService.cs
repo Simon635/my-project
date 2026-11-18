@@ -1,83 +1,87 @@
+using backend.Data;
 using backend.Dtos;
 using backend.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace backend.Services;
 
-public class RepairRequestService : IRepairRequestService
+public class RepairRequestService(AppDbContext db) : IRepairRequestService
 {
-    private readonly List<RepairRequest> _requests = [];
-    private int _nextId = 1;
-    private int _nextNumber = 1001;
-
     private static readonly string[] AllowedStatuses =
-    [
-        "New",
-        "InProgress",
-        "Closed",
-        "Cancelled"
-    ];
+        ["New", "InProgress", "Closed", "Cancelled"];
 
-    public RepairRequest Create(CreateRepairRequestRequest request)
+    public async Task<RepairRequest> CreateAsync(CreateRepairRequestRequest request)
     {
+        var lastNumber = await db.RepairRequests
+            .MaxAsync(x => (int?)x.Number) ?? 1000;
+
         var repairRequest = new RepairRequest
         {
-            Id = _nextId++,
-            Number = _nextNumber++,
+            Number = lastNumber + 1,
             Title = request.Title,
             Description = request.Description,
             ClassroomId = request.ClassroomId,
             CreatedByUserId = 5,
             Status = "New",
-            AssigneeUserId = null
+            CreatedAt = DateTimeOffset.UtcNow
         };
 
-        _requests.Add(repairRequest);
+        db.RepairRequests.Add(repairRequest);
+        await db.SaveChangesAsync();
+
         return repairRequest;
     }
 
-    public List<RepairRequest> GetAll()
+    public async Task<List<RepairRequest>> GetAllAsync()
     {
-        return _requests;
+        return await db.RepairRequests
+            .AsNoTracking()
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync();
     }
 
-    public RepairRequest? GetById(int id)
+    public async Task<RepairRequest?> GetByIdAsync(int id)
     {
-        return _requests.FirstOrDefault(request => request.Id == id);
+        return await db.RepairRequests
+            .FirstOrDefaultAsync(x => x.Id == id);
     }
 
-    public RepairRequest? Assign(int id, int assigneeUserId)
+    public async Task<RepairRequest?> AssignAsync(int id, int assigneeUserId)
     {
-        var request = GetById(id);
+        var request = await GetByIdAsync(id);
 
         if (request is null)
-        {
             return null;
-        }
+
+        var userExists = await db.Users
+            .AnyAsync(x => x.Id == assigneeUserId);
+
+        if (!userExists)
+            throw new InvalidOperationException("Исполнитель не найден.");
 
         request.AssigneeUserId = assigneeUserId;
+        await db.SaveChangesAsync();
+
         return request;
     }
 
-    public (RepairRequest? Request, string? Error) UpdateStatus(int id, string status)
+    public async Task<(RepairRequest? Request, string? Error)> UpdateStatusAsync(
+        int id, string status)
     {
-        var request = GetById(id);
+        var request = await GetByIdAsync(id);
 
         if (request is null)
-        {
             return (null, null);
-        }
 
         if (!AllowedStatuses.Contains(status))
-        {
             return (request, "Недопустимый статус заявки");
-        }
 
         if (status == "InProgress" && request.AssigneeUserId is null)
-        {
             return (request, "Нельзя начать выполнение без назначенного исполнителя");
-        }
 
         request.Status = status;
+        await db.SaveChangesAsync();
+
         return (request, null);
     }
 }

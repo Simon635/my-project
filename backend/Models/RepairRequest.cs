@@ -10,4 +10,9 @@ public class RepairRequest
     public int ClassroomId { get; set; }
     public int CreatedByUserId { get; set; }
     public int? AssigneeUserId { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+
+    public Classroom Classroom { get; set; } = null!;
+    public User CreatedByUser { get; set; } = null!;
+    public User? AssigneeUser { get; set; }
 }
