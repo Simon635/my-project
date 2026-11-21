@@ -157,6 +157,10 @@ namespace backend.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -176,6 +180,7 @@ namespace backend.Migrations
                             Id = 5,
                             Login = "teacher",
                             Name = "Преподаватель",
+                            PasswordHash = "",
                             Role = "Teacher"
                         },
                         new
@@ -183,6 +188,7 @@ namespace backend.Migrations
                             Id = 6,
                             Login = "dispatcher",
                             Name = "Диспетчер",
+                            PasswordHash = "",
                             Role = "Dispatcher"
                         },
                         new
@@ -190,6 +196,7 @@ namespace backend.Migrations
                             Id = 7,
                             Login = "technician",
                             Name = "Техник",
+                            PasswordHash = "",
                             Role = "Technician"
                         });
                 });

@@ -1,6 +1,8 @@
+using System.Security.Claims;
 using backend.Dtos;
 using backend.Models;
 using backend.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace backend.Controllers;
@@ -11,13 +13,15 @@ public class RepairRequestsController(
     IRepairRequestService service,
     ILogger<RepairRequestsController> logger) : ControllerBase
 {
+    [Authorize(Roles = "Dispatcher")]
     [HttpPost]
     public async Task<ActionResult<RepairRequestResponse>> Create(
         CreateRepairRequestRequest request)
     {
         try
         {
-            var repairRequest = await service.CreateAsync(request);
+            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var repairRequest = await service.CreateAsync(request, currentUserId);
             var response = MapToResponse(repairRequest);
 
             return CreatedAtAction(
@@ -41,6 +45,7 @@ public class RepairRequestsController(
         }
     }
 
+    [Authorize]
     [HttpGet]
     public async Task<ActionResult<List<RepairRequestResponse>>> GetAll()
     {
@@ -48,6 +53,7 @@ public class RepairRequestsController(
         return Ok(requests.Select(MapToResponse).ToList());
     }
 
+    [Authorize]
     [HttpGet("{id:int}")]
     public async Task<ActionResult<RepairRequestResponse>> GetById(int id)
     {
@@ -59,6 +65,7 @@ public class RepairRequestsController(
         return Ok(MapToResponse(repairRequest));
     }
 
+    [Authorize(Roles = "Dispatcher")]
     [HttpPatch("{id:int}/assignee")]
     public async Task<ActionResult<RepairRequestResponse>> Assign(
         int id, AssignRepairRequestRequest request)
@@ -71,10 +78,19 @@ public class RepairRequestsController(
         return Ok(MapToResponse(repairRequest));
     }
 
+    [Authorize(Roles = "Technician")]
     [HttpPatch("{id:int}/status")]
     public async Task<ActionResult<RepairRequestResponse>> UpdateStatus(
         int id, UpdateRepairRequestStatusRequest request)
     {
+        var repairRequestForAccess = await service.GetByIdAsync(id);
+        if (repairRequestForAccess is null)
+            return NotFound();
+
+        var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (repairRequestForAccess.AssigneeUserId != currentUserId)
+            return Forbid();
+
         var result = await service.UpdateStatusAsync(id, request.Status);
 
         if (result.Request is null)

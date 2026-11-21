@@ -10,7 +10,7 @@ public class RepairRequestService(AppDbContext db) : IRepairRequestService
     private static readonly string[] AllowedStatuses =
         ["New", "InProgress", "Closed", "Cancelled"];
 
-    public async Task<RepairRequest> CreateAsync(CreateRepairRequestRequest request)
+    public async Task<RepairRequest> CreateAsync(CreateRepairRequestRequest request, int createdByUserId)
     {
         var lastNumber = await db.RepairRequests
             .MaxAsync(x => (int?)x.Number) ?? 1000;
@@ -21,7 +21,7 @@ public class RepairRequestService(AppDbContext db) : IRepairRequestService
             Title = request.Title,
             Description = request.Description,
             ClassroomId = request.ClassroomId,
-            CreatedByUserId = 5,
+            CreatedByUserId = createdByUserId,
             Status = "New",
             CreatedAt = DateTimeOffset.UtcNow
         };

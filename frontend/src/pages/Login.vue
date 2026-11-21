@@ -1,69 +1,65 @@
 <script setup>
 import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { login } from '../api/auth'
+
+const router = useRouter()
 
 const form = reactive({
-  email: '',
-  password: '',
+    login: '',
+    password: '',
 })
 
 const loginMessage = ref('')
+const isLoading = ref(false)
 
-function login() {
-  loginMessage.value =
-    'Форма проверена. Авторизация будет подключена после появления backend.'
+async function handleLogin() {
+    loginMessage.value = ''
+    isLoading.value = true
+
+    try {
+        await login(form.login, form.password)
+        router.push('/')
+    } catch (error) {
+        loginMessage.value = error.message
+    } finally {
+        isLoading.value = false
+    }
 }
 </script>
 
 <template>
-  <main class="main">
-    <section class="page-heading">
-      <div>
-        <p class="eyebrow">ЛИЧНЫЙ КАБИНЕТ</p>
+    <section class="login">
         <h1>Вход в систему</h1>
-        <p>Войдите, чтобы работать с заявками на ремонт.</p>
-      </div>
-    </section>
 
-    <section class="login-section">
-      <div class="login-icon">М</div>
+        <form @submit.prevent="handleLogin">
+            <label>
+                Логин
+                <input
+                    v-model="form.login"
+                    type="text"
+                    autocomplete="username"
+                    required
+                />
+            </label>
 
-      <form class="request-form" @submit.prevent="login">
-        <div>
-          <label for="email">Электронная почта</label>
-          <input
-            id="email"
-            v-model="form.email"
-            type="email"
-            placeholder="name@example.com"
-            autocomplete="username"
-            required
-          />
-        </div>
+            <label>
+                Пароль
+                <input
+                    v-model="form.password"
+                    type="password"
+                    autocomplete="current-password"
+                    required
+                />
+            </label>
 
-        <div>
-          <label for="password">Пароль</label>
-          <input
-            id="password"
-            v-model="form.password"
-            type="password"
-            placeholder="Введите пароль"
-            autocomplete="current-password"
-            required
-          />
-        </div>
+            <button type="submit" :disabled="isLoading">
+                {{ isLoading ? 'Вход...' : 'Войти' }}
+            </button>
+        </form>
 
-        <button type="submit" class="primary-button login-button">
-          Войти
-        </button>
-
-        <p v-if="loginMessage" class="login-message">
-          {{ loginMessage }}
+        <p v-if="loginMessage" class="login__error">
+            {{ loginMessage }}
         </p>
-      </form>
-
-      <RouterLink to="/" class="back-link">
-        Вернуться к заявкам
-      </RouterLink>
     </section>
-  </main>
 </template>
