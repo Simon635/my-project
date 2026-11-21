@@ -1,79 +1,67 @@
-import {
-	mockGetTickets,
-	mockCreateTicket,
-} from './mockTickets'
+const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
-// true — используем учебный mock
-// false — отправляем настоящие HTTP-запросы
-const USE_MOCK = true
+async function request(url, options = {}) {
+    const response = await fetch(`${baseUrl}${url}`, {
+        credentials: 'include',
+        ...options,
+        headers: {
+            ...(options.headers || {}),
+        },
+    })
 
-const baseUrl = import.meta.env.VITE_API_BASE_URL
+    if (!response.ok) {
+        const error = new Error(
+            response.status === 401 ? 'Необходима авторизация' :
+            response.status === 403 ? 'Недостаточно прав' :
+            response.status === 400 ? 'Проверьте введённые данные' :
+            'Ошибка API'
+        )
+        error.status = response.status
+        throw error
+    }
 
-function handleMockResponse(response) {
-	if (!response.ok) {
-		const error = new Error(
-			response.status === 400
-				? 'Проверьте поля заявки'
-				: 'Сервер не смог обработать запрос',
-		)
-
-		error.status = response.status
-		throw error
-	}
-
-	return response.data
+    if (response.status === 204) return null
+    return response.json()
 }
 
-async function handleFetchResponse(response) {
-	if (!response.ok) {
-		const error = new Error(
-			response.status === 400
-				? 'Проверьте поля заявки'
-				: 'Сервер не смог обработать запрос',
-		)
-
-		error.status = response.status
-		throw error
-	}
-
-	return response.json()
+function normalize(item) {
+    return {
+        ...item,
+        siteId: item.classroomId,
+        number: String(item.number),
+    }
 }
 
 export async function getTickets() {
-	if (USE_MOCK) {
-		const response = await mockGetTickets()
-		return handleMockResponse(response)
-	}
-
-	try {
-		const response = await fetch(`${baseUrl}/api/tickets`)
-		return await handleFetchResponse(response)
-	} catch (error) {
-		if (error.status) throw error
-
-		throw new Error('Нет связи с сервером')
-	}
+    const data = await request('/api/repair-requests')
+    return data.map(normalize)
 }
 
 export async function createTicket(body) {
-	if (USE_MOCK) {
-		const response = await mockCreateTicket(body)
-		return handleMockResponse(response)
-	}
+    const created = await request('/api/repair-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            title: body.title,
+            classroomId: Number(body.siteId),
+            description: body.description,
+        }),
+    })
+    return normalize(created)
+}
 
-	try {
-		const response = await fetch(`${baseUrl}/api/tickets`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify(body),
-		})
+export async function assignTicket(id, assigneeUserId) {
+    return normalize(await request(`/api/repair-requests/${id}/assignee`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assigneeUserId }),
+    }))
+}
 
-		return await handleFetchResponse(response)
-	} catch (error) {
-		if (error.status) throw error
-
-		throw new Error('Нет связи с сервером')
-	}
+export async function updateTicketStatus(id, status) {
+    return normalize(await request(`/api/repair-requests/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+    }))
 }

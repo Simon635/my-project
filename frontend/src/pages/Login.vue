@@ -29,7 +29,7 @@ async function handleLogin() {
 </script>
 
 <template>
-    <section class="login">
+    <main class="login-page"><section class="login-section">
         <h1>Вход в систему</h1>
 
         <form @submit.prevent="handleLogin">
@@ -61,5 +61,5 @@ async function handleLogin() {
         <p v-if="loginMessage" class="login__error">
             {{ loginMessage }}
         </p>
-    </section>
+    </section></main>
 </template>
