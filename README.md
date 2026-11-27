@@ -92,9 +92,9 @@ Backend находится в каталоге `backend`.
     dotnet restore
     dotnet run
 
-API: http://localhost:5000
+API: http://localhost:5001
 
-Swagger: http://localhost:5000/swagger
+Swagger: http://localhost:5001/swagger
 
 ### Служебные маршруты
 
@@ -265,3 +265,20 @@ Swagger: http://localhost:5000/swagger
 - [Отчёт ЛР12](docs/reports/lab-12.md)
 - [Приёмочное тестирование](docs/acceptance-check.md)
 - [Известные особенности и ограничения](docs/known-defects.md)
+
+
+## Документы ЛР13
+
+- [Отчёт ЛР13](docs/reports/lab-13.md)
+- [Проверка перед предзащитой](docs/predefense-check.md)
+- [Пояснительная записка](docs/kursovaya-zapiska.md)
+
+## Запуск актуальной версии
+
+1. Создать базу PostgreSQL `multimedia_repair`.
+2. В каталоге `backend` настроить `ConnectionStrings:Default` через `dotnet user-secrets set`.
+3. Выполнить `dotnet ef database update` из каталога `backend`.
+4. Запустить backend командой `dotnet run` из `backend`.
+5. Запустить frontend командами `npm install` и `npm run dev` из `frontend`.
+
+Адрес frontend: `http://localhost:5173`. Адрес API: `http://localhost:5001`. Для frontend используется `VITE_USE_MOCK=false`.
